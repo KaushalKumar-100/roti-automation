@@ -174,18 +174,57 @@ with sync_playwright() as p:
         ).inner_text()
 
 
-        success_messages = [
-            "Your response has been recorded",
-            "Response recorded",
-            "Thanks for submitting",
-            "Your response was recorded"
-        ]
+        # Check the page after submission
+current_url = page.url
+body_lower = body_text.lower()
 
+log(f"URL after submission: {current_url}")
+log("Checking submission confirmation...")
 
-        submitted = any(
-            message.lower() in body_text.lower()
-            for message in success_messages
-        )
+success_messages = [
+    "your response has been recorded",
+    "response has been recorded",
+    "response recorded",
+    "thanks for submitting",
+    "your response was recorded",
+    "response was recorded"
+]
+
+submitted = any(
+    message in body_lower
+    for message in success_messages
+)
+
+# Google Forms normally shows a confirmation page after
+# a successful submission.
+if submitted:
+    log("=" * 60)
+    log("SUCCESS: FORM SUBMITTED")
+    log("=" * 60)
+
+else:
+    log("=" * 60)
+    log("WARNING: SUBMISSION STATUS UNCLEAR")
+    log("=" * 60)
+
+    log("Page URL:")
+    log(current_url)
+
+    log("Page text:")
+    log(body_text[:3000])
+
+    screenshot = BASE_DIR / "submission_result.png"
+
+    page.screenshot(
+        path=str(screenshot),
+        full_page=True
+    )
+
+    log(f"Screenshot saved: {screenshot}")
+
+    raise RuntimeError(
+        "Could not confirm form submission."
+    )
 
 
         if submitted:
