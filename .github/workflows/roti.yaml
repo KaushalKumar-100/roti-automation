@@ -2,6 +2,7 @@ name: Roti Form Automation
 
 on:
   workflow_dispatch:
+
   schedule:
     # 6:05 AM IST = 00:35 UTC
     - cron: "35 0 * * *"
