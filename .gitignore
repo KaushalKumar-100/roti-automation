@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+logs/
+error.png
+submission_result.png
+chrome_profile/
