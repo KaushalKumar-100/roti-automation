@@ -16,13 +16,17 @@ LOG_DIR.mkdir(exist_ok=True)
 
 
 # ============================================================
-# LOAD CONFIG
+# LOAD FORM URL
 # ============================================================
 
 form_url = (
     BASE_DIR / "form_url.txt"
 ).read_text(encoding="utf-8").strip().strip('"').strip("'")
 
+
+# ============================================================
+# LOAD CONFIG
+# ============================================================
 
 with open(BASE_DIR / "config.json", "r", encoding="utf-8") as f:
     config = json.load(f)
@@ -33,6 +37,7 @@ with open(BASE_DIR / "config.json", "r", encoding="utf-8") as f:
 # ============================================================
 
 timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
 log_file = LOG_DIR / f"submission_{timestamp}.txt"
 
 
@@ -44,7 +49,7 @@ def log(message):
 
 
 # ============================================================
-# VALIDATE URL
+# VALIDATE FORM URL
 # ============================================================
 
 if not form_url.startswith("https://docs.google.com/forms/"):
@@ -53,7 +58,7 @@ if not form_url.startswith("https://docs.google.com/forms/"):
 
 
 # ============================================================
-# START
+# START AUTOMATION
 # ============================================================
 
 log("=" * 60)
@@ -83,9 +88,9 @@ with sync_playwright() as p:
 
     try:
 
-        # ----------------------------------------------------
+        # ====================================================
         # OPEN FORM
-        # ----------------------------------------------------
+        # ====================================================
 
         log("Opening Google Form...")
 
@@ -100,9 +105,9 @@ with sync_playwright() as p:
         log(f"Form title: {page.title()}")
 
 
-        # ----------------------------------------------------
+        # ====================================================
         # FILL NAME
-        # ----------------------------------------------------
+        # ====================================================
 
         log("Filling Name...")
 
@@ -118,9 +123,9 @@ with sync_playwright() as p:
         )
 
 
-        # ----------------------------------------------------
-        # SELECT ROTI
-        # ----------------------------------------------------
+        # ====================================================
+        # SELECT ROTI = YES
+        # ====================================================
 
         log("Selecting Roti = Yes...")
 
@@ -130,9 +135,9 @@ with sync_playwright() as p:
         ).first.click()
 
 
-        # ----------------------------------------------------
+        # ====================================================
         # FILL ROOM NUMBER
-        # ----------------------------------------------------
+        # ====================================================
 
         log("Filling Room Number...")
 
@@ -148,9 +153,9 @@ with sync_playwright() as p:
         )
 
 
-        # ----------------------------------------------------
-        # SUBMIT
-        # ----------------------------------------------------
+        # ====================================================
+        # SUBMIT FORM
+        # ====================================================
 
         log("Submitting form...")
 
@@ -159,12 +164,14 @@ with sync_playwright() as p:
             name="Submit"
         ).click()
 
+
+        # Wait for Google Forms to process submission
         page.wait_for_timeout(4000)
 
 
-        # ----------------------------------------------------
-        # CHECK RESULT
-        # ----------------------------------------------------
+        # ====================================================
+        # CHECK SUBMISSION RESULT
+        # ====================================================
 
         current_url = page.url
 
@@ -174,26 +181,27 @@ with sync_playwright() as p:
 
         body_lower = body_text.lower()
 
-        log(f"URL after submission: {current_url}")
-
-        log("Checking submission confirmation...")
-
-
-        success_messages = [
-            "your response has been recorded",
-            "response has been recorded",
-            "response recorded",
-            "thanks for submitting",
-            "your response was recorded",
-            "response was recorded"
-        ]
-
-
-        submitted = any(
-            message in body_lower
-            for message in success_messages
+        log(
+            f"URL after submission: {current_url}"
         )
 
+        log(
+            "Checking submission confirmation..."
+        )
+
+
+        # Google Forms redirects to /formResponse
+        # after processing the response.
+
+        submitted = (
+            "/formResponse" in current_url
+            and "submit another response" in body_lower
+        )
+
+
+        # ====================================================
+        # SUCCESS
+        # ====================================================
 
         if submitted:
 
@@ -201,19 +209,35 @@ with sync_playwright() as p:
             log("SUCCESS: FORM SUBMITTED")
             log("=" * 60)
 
+            log(
+                "Google Forms returned the post-submission page."
+            )
+
+
+        # ====================================================
+        # UNKNOWN RESULT
+        # ====================================================
+
         else:
 
             log("=" * 60)
             log("WARNING: SUBMISSION STATUS UNCLEAR")
             log("=" * 60)
 
-            log("Page URL:")
-            log(current_url)
+            log(
+                f"Page URL: {current_url}"
+            )
 
             log("Page text:")
-            log(body_text[:3000])
 
-            screenshot = BASE_DIR / "submission_result.png"
+            log(
+                body_text[:3000]
+            )
+
+
+            screenshot = (
+                BASE_DIR / "submission_result.png"
+            )
 
             page.screenshot(
                 path=str(screenshot),
@@ -229,6 +253,10 @@ with sync_playwright() as p:
             )
 
 
+    # ========================================================
+    # ERROR HANDLING
+    # ========================================================
+
     except Exception as e:
 
         log("=" * 60)
@@ -240,7 +268,9 @@ with sync_playwright() as p:
 
         try:
 
-            screenshot = BASE_DIR / "error.png"
+            screenshot = (
+                BASE_DIR / "error.png"
+            )
 
             page.screenshot(
                 path=str(screenshot),
@@ -258,9 +288,19 @@ with sync_playwright() as p:
         raise
 
 
+    # ========================================================
+    # CLOSE BROWSER
+    # ========================================================
+
     finally:
 
         browser.close()
 
 
-log("Automation finished.")
+# ============================================================
+# FINISHED
+# ============================================================
+
+log("=" * 60)
+log("AUTOMATION FINISHED")
+log("=" * 60)
