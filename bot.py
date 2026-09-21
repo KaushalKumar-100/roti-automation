@@ -1,7 +1,5 @@
-
 from pathlib import Path
 import json
-import os
 from datetime import datetime
 
 from playwright.sync_api import sync_playwright
@@ -12,6 +10,7 @@ from playwright.sync_api import sync_playwright
 # ============================================================
 
 BASE_DIR = Path(__file__).resolve().parent
+
 LOG_DIR = BASE_DIR / "logs"
 LOG_DIR.mkdir(exist_ok=True)
 
@@ -160,71 +159,40 @@ with sync_playwright() as p:
             name="Submit"
         ).click()
 
-
-        # Give Google Forms time to process submission
-        page.wait_for_timeout(3000)
+        page.wait_for_timeout(4000)
 
 
         # ----------------------------------------------------
         # CHECK RESULT
         # ----------------------------------------------------
 
+        current_url = page.url
+
         body_text = page.locator(
             "body"
         ).inner_text()
 
+        body_lower = body_text.lower()
 
-        # Check the page after submission
-current_url = page.url
-body_lower = body_text.lower()
+        log(f"URL after submission: {current_url}")
 
-log(f"URL after submission: {current_url}")
-log("Checking submission confirmation...")
+        log("Checking submission confirmation...")
 
-success_messages = [
-    "your response has been recorded",
-    "response has been recorded",
-    "response recorded",
-    "thanks for submitting",
-    "your response was recorded",
-    "response was recorded"
-]
 
-submitted = any(
-    message in body_lower
-    for message in success_messages
-)
+        success_messages = [
+            "your response has been recorded",
+            "response has been recorded",
+            "response recorded",
+            "thanks for submitting",
+            "your response was recorded",
+            "response was recorded"
+        ]
 
-# Google Forms normally shows a confirmation page after
-# a successful submission.
-if submitted:
-    log("=" * 60)
-    log("SUCCESS: FORM SUBMITTED")
-    log("=" * 60)
 
-else:
-    log("=" * 60)
-    log("WARNING: SUBMISSION STATUS UNCLEAR")
-    log("=" * 60)
-
-    log("Page URL:")
-    log(current_url)
-
-    log("Page text:")
-    log(body_text[:3000])
-
-    screenshot = BASE_DIR / "submission_result.png"
-
-    page.screenshot(
-        path=str(screenshot),
-        full_page=True
-    )
-
-    log(f"Screenshot saved: {screenshot}")
-
-    raise RuntimeError(
-        "Could not confirm form submission."
-    )
+        submitted = any(
+            message in body_lower
+            for message in success_messages
+        )
 
 
         if submitted:
@@ -238,6 +206,12 @@ else:
             log("=" * 60)
             log("WARNING: SUBMISSION STATUS UNCLEAR")
             log("=" * 60)
+
+            log("Page URL:")
+            log(current_url)
+
+            log("Page text:")
+            log(body_text[:3000])
 
             screenshot = BASE_DIR / "submission_result.png"
 
